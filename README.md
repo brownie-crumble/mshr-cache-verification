@@ -1,25 +1,60 @@
 # MSHR-Based Non-Blocking Cache Verification
 
-This project simulates and verifies a non-blocking, direct-mapped cache implemented in Verilog with dual Miss Status Handling Registers (MSHRs). The design supports read and write operations, handles concurrent cache misses via MSHRs, and includes assertion-based checks and waveform-based debugging.
+This project implements and verifies a **non-blocking cache** with **dual MSHRs (Miss Status Holding Registers)** using SystemVerilog. The testbench is designed to explore cache hit/miss conditions, simultaneous miss handling, and edge cases like MSHR full.
 
-## 🔧 Features
+---
 
-- **Dual-MSHR support** for concurrent miss tracking
-- **Read/Write request support** with cache fill handling
-- **Corner case testing**: hits, misses, MSHR full scenarios
-- **Assertions** to check timing and MSHR correctness
-- **Waveform debugging** using EPWave/GTKWave
-- **Fully automated testbench** with task-based interface
+## Concept Overview
 
-## File Overview
+Traditional blocking caches stall on a miss. This design allows up to **two outstanding misses** to proceed concurrently using two MSHRs. Requests are queued and serviced independently, simulating realistic memory delays.
 
-| File            | Description                                 |
-|-----------------|---------------------------------------------|
-| `design.sv`     | Cache module with MSHR logic and assertions |
-| `testbench.sv`  | SystemVerilog testbench with all testcases  |
-| `waveform.png`  | Waveform snapshot (optional)                |
-| `dump.vcd`      | VCD generated during simulation              |
+Each MSHR holds the metadata for a pending miss, ensuring the cache doesn't block subsequent requests.  
+This approach improves performance in pipelined systems and mimics real-world out-of-order memory behavior.
 
-## Run Instructions
+---
 
-You can run this using Icarus Verilog and GTKWave
+##  Design Highlights
+
+- **Direct-Mapped Cache**
+- **2-entry MSHR** for parallel miss handling
+- **Tag-based hit detection**
+- Read/Write support
+- Simulated memory latency
+
+---
+
+##  Verification Features
+
+- SystemVerilog assertions for functional correctness
+- Testbench generates:
+  - Write + Read (RAW)
+  - Consecutive read misses (with MSHRs)
+  - MSHR full: third request is dropped
+- **Waveform-based debugging** with EPWave
+- Complete signal observation using `.vcd`
+
+---
+
+## Waveform Snapshot
+
+> Read-after-write hit  
+> Two parallel misses allocated  
+>  Third miss rejected due to MSHR full  
+>  Later hits succeed
+
+![Waveform](waveforms_screenshot.png)
+
+---
+
+##  Repository Structure
+
+| File               | Description                              |
+|--------------------|------------------------------------------|
+| `design.sv`        | Cache + MSHR RTL design                  |
+| `testbench.sv`     | Testbench with corner case coverage      |
+| `dump.vcd`         | Waveform file (generated after run)      |
+| `waveforms_screenshot.png` | Visual snapshot of signal behavior |
+
+---
+
+
