@@ -42,7 +42,7 @@ This approach improves performance in pipelined systems and mimics real-world ou
 >  Third miss rejected due to MSHR full  
 >  Later hits succeed
 
-![Waveform](waveforms_screenshot.png)
+![Waveform](Waveforms_screenshot.png)
 
 ---
 
