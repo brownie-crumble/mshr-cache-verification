@@ -96,13 +96,8 @@ All 6 assertions passed. 0 failures.
 - **Coalescing**: Two back-to-back misses to `0x20` — only one `mem_req_valid` pulse observed
 - **MSHR full**: `mshr_full` asserts on 5th simultaneous miss when all 4 entries occupied
 
-> 📸 *[Add Vivado waveform screenshots here]*
+> <img width="1914" height="1022" alt="image" src="https://github.com/user-attachments/assets/da85620b-0793-4d58-af50-b804a9e8e59d" />
 
----
-
-## Resume Bullet
-
-> *Designed and verified a parameterized 2-way set-associative non-blocking cache with 4-entry coalescing MSHRs in Verilog; implemented per-entry FSM (INVALID→ALLOCATED→WAITING→FILLING), LRU replacement, and a latency-accurate backing memory model; validated with self-checking testbench covering cold misses, MSHR saturation, request coalescing, and LRU eviction — 6/6 assertions passing*
 
 ---
 
