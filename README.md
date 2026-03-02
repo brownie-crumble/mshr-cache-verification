@@ -1,7 +1,15 @@
 # MSHR-Based Non-Blocking Cache
 
-A synthesizable, parameterized non-blocking cache implemented in Verilog, verified with a self-checking testbench. Built to demonstrate design verification methodologies relevant to IC development flows.
+Traditional blocking caches stall the processor on every miss.
+When a miss occurs, the cache must wait for memory to return data before accepting new requests. This severely limits memory-level parallelism and reduces overall throughput.
 
+This project implements a non-blocking cache using a Miss Status Holding Register (MSHR) structure to track multiple outstanding misses. While memory transactions are in flight, the cache continues servicing independent hits and additional misses.
+
+The goal of this design is to demonstrate:
+- Microarchitectural control logic design
+- Concurrent resource tracking
+- Miss handling and refill coordination
+- Deterministic RTL verification methodology
 ---
 
 ## Architecture Overview
