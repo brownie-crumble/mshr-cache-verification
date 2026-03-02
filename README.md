@@ -1,60 +1,116 @@
-# MSHR-Based Non-Blocking Cache Verification
+# MSHR-Based Non-Blocking Cache
 
-This project implements and verifies a **non-blocking cache** with **dual MSHRs (Miss Status Holding Registers)** using SystemVerilog. The testbench is designed to explore cache hit/miss conditions, simultaneous miss handling, and edge cases like MSHR full.
-
----
-
-## Concept Overview
-
-Traditional blocking caches stall on a miss. This design allows up to **two outstanding misses** to proceed concurrently using two MSHRs. Requests are queued and serviced independently, simulating realistic memory delays.
-
-Each MSHR holds the metadata for a pending miss, ensuring the cache doesn't block subsequent requests.  
-This approach improves performance in pipelined systems and mimics real-world out-of-order memory behavior.
+A synthesizable, parameterized non-blocking cache implemented in Verilog, verified with a self-checking testbench. Built to demonstrate design verification methodologies relevant to IC development flows.
 
 ---
 
-##  Design Highlights
-
-- **Direct-Mapped Cache**
-- **2-entry MSHR** for parallel miss handling
-- **Tag-based hit detection**
-- Read/Write support
-- Simulated memory latency
-
----
-
-##  Verification Features
-
-- SystemVerilog assertions for functional correctness
-- Testbench generates:
-  - Write + Read (RAW)
-  - Consecutive read misses (with MSHRs)
-  - MSHR full: third request is dropped
-- **Waveform-based debugging** with EPWave
-- Complete signal observation using `.vcd`
-
----
-
-## Waveform Snapshot
-
-> Read-after-write hit  
-> Two parallel misses allocated  
->  Third miss rejected due to MSHR full  
->  Later hits succeed
-
-![Waveform](Waveforms_screenshot.png)
+## Architecture Overview
+```
+CPU Request
+     │
+     ▼
+┌─────────────┐     hit     ┌──────────────────┐
+│  Tag Lookup  │───────────▶│  Cache Data Array │
+│ (2-way LRU)  │            │  (2-way, 4 sets)  │
+└─────────────┘             └──────────────────┘
+     │ miss
+     ▼
+┌─────────────────────────┐
+│     MSHR File (x4)       │
+│  INVALID → ALLOCATED     │
+│  → WAITING → FILLING     │
+│  + Request Coalescing    │
+└─────────────────────────┘
+     │
+     ▼
+┌─────────────┐
+│  Mem Model   │  (latency-accurate backing memory)
+│  256 x 8b    │
+└─────────────┘
+```
 
 ---
 
-##  Repository Structure
+## Features
 
-| File               | Description                              |
-|--------------------|------------------------------------------|
-| `design.sv`        | Cache + MSHR RTL design                  |
-| `testbench.sv`     | Testbench with corner case coverage      |
-| `dump.vcd`         | Waveform file (generated after run)      |
-| `waveforms_screenshot.png` | Visual snapshot of signal behavior |
+- **2-way set-associative** with pseudo-LRU replacement policy
+- **4-entry MSHR file** — tracks up to 4 simultaneous outstanding misses
+- **Per-entry FSM** — each MSHR transitions through `INVALID → ALLOCATED → WAITING → FILLING`
+- **Request coalescing** — a second miss to an in-flight address merges into the existing MSHR instead of allocating a new one
+- **Latency-accurate memory model** — configurable cycle latency, address-seeded initial data for easy verification
+- **Non-blocking** — cache continues to accept hits while misses are pending
 
 ---
 
+## File Structure
+```
+├── defines.v       # Global parameters (sets, ways, MSHR count, latency)
+├── cache.v         # Top-level cache with MSHR FSM and LRU logic
+├── mem_model.v     # Backing memory — stores real data, models latency
+└── testbench.v     # Self-checking testbench with pass/fail reporting
+```
 
+---
+
+## Parameters (`defines.v`)
+
+| Parameter | Default | Description |
+|---|---|---|
+| `NUM_SETS` | 4 | Number of cache sets |
+| `NUM_WAYS` | 2 | Associativity |
+| `NUM_MSHR` | 4 | Outstanding miss capacity |
+| `MEM_LATENCY` | 6 | Memory response latency (cycles) |
+| `ADDR_WIDTH` | 8 | Address width (bits) |
+| `BLOCK_SIZE` | 8 | Data width (bits) |
+
+---
+
+## Test Coverage
+
+| Test | Scenario | Result |
+|---|---|---|
+| T1 | Write → wait for fill → read back | PASS |
+| T2 | Cold read miss → fill from memory → hit | PASS |
+| T3 | Saturate all 4 MSHRs → verify `mshr_full` signal | PASS |
+| T4 | Two misses to same address → coalesced into one MSHR | PASS |
+| T5 | LRU eviction — both ways filled, verify correct evict | PASS |
+
+All 6 assertions passed. 0 failures.
+
+---
+
+## How to Run (Vivado)
+
+1. Create a new RTL project in Vivado (Verilog)
+2. Add `defines.v`, `cache.v`, `mem_model.v` as design sources
+3. Add `testbench.v` as simulation source
+4. Set `testbench` as simulation top
+5. Run Behavioral Simulation → check console for `PASS/FAIL` output
+6. Add signals to waveform: `hit`, `miss`, `mshr_full`, `ready`, `rdata`, `mem_req_valid`, `mem_resp_valid`
+
+---
+
+## Key Waveforms to Observe
+
+- **MSHR fill handshake**: `mem_req_valid` goes high when MSHR transitions `ALLOCATED → WAITING`, `mem_resp_valid` comes back after latency
+- **Coalescing**: Two back-to-back misses to `0x20` — only one `mem_req_valid` pulse observed
+- **MSHR full**: `mshr_full` asserts on 5th simultaneous miss when all 4 entries occupied
+
+> 📸 *[Add Vivado waveform screenshots here]*
+
+---
+
+## Resume Bullet
+
+> *Designed and verified a parameterized 2-way set-associative non-blocking cache with 4-entry coalescing MSHRs in Verilog; implemented per-entry FSM (INVALID→ALLOCATED→WAITING→FILLING), LRU replacement, and a latency-accurate backing memory model; validated with self-checking testbench covering cold misses, MSHR saturation, request coalescing, and LRU eviction — 6/6 assertions passing*
+
+---
+
+## Concepts Demonstrated
+
+- Non-blocking cache design and memory-level parallelism
+- MSHR allocation, tracking, and coalescing
+- Finite state machine design in synthesizable Verilog
+- Set-associative cache indexing and LRU replacement
+- Latency modeling and memory interface handshaking
+- Self-checking testbench methodology
